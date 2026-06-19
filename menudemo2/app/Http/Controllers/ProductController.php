@@ -74,10 +74,11 @@ class ProductController extends Controller
             'category_id' => 'required|integer|exists:categories,id',
             'tag' => 'nullable|string|max:100',
             'badge' => 'nullable|string|max:100',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', 
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'remove_image' => 'nullable|boolean',
         ]);
 
-        // ✅ CORRECCIÓN #1: Manejar is_active correctamente
+        // ✅ Manejar is_active correctamente
         if ($request->has('is_active')) {
             $validated['is_active'] = true;
         } elseif ($product) {
@@ -86,24 +87,33 @@ class ProductController extends Controller
             $validated['is_active'] = true;
         }
 
-        // ✅ CORRECCIÓN #2: LÓGICA MEJORADA PARA IMÁGENES
-        if ($request->hasFile('image')) {
-            // Si hay una imagen nueva, primero eliminar la anterior (si existe)
+        // ✅ MEJORADO: Lógica completa de imágenes con eliminación explícita
+        
+        // Caso 1: Solicitud de eliminar imagen
+        if ($request->has('remove_image') && $request->remove_image == '1') {
+            if ($product && $product->image_url) {
+                $oldPath = str_replace('/storage/', '', $product->image_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $validated['image_url'] = null;
+        }
+        // Caso 2: Nueva imagen subida (reemplaza anterior)
+        elseif ($request->hasFile('image')) {
+            // Eliminar imagen anterior si existe
             if ($product && $product->image_url) {
                 $oldPath = str_replace('/storage/', '', $product->image_url);
                 Storage::disk('public')->delete($oldPath);
             }
 
-            // Guardar la nueva imagen
+            // Guardar nueva imagen
             $path = $request->file('image')->store('products', 'public');
             $validated['image_url'] = Storage::url($path);
-        } else {
-            // Si NO hay imagen nueva:
+        }
+        // Caso 3: Sin cambios de imagen (mantener la existente)
+        else {
             if ($product && $product->image_url) {
-                // Si es edición, mantener la imagen anterior
                 $validated['image_url'] = $product->image_url;
             } else {
-                // Si es creación sin imagen, dejar null (no obligatorio)
                 $validated['image_url'] = null;
             }
         }
@@ -120,10 +130,14 @@ class ProductController extends Controller
             $validated['price_bs'] = $validated['price_usd'] * $exchangeRate;
         }
 
-        // ✅ CORRECCIÓN #3: NO incluir 'category' en el array validado
-        // Remover la columna 'category' si existe, solo usar category_id
+        // NO incluir 'category' en el array validado
         if (isset($validated['category'])) {
             unset($validated['category']);
+        }
+
+        // NO incluir 'remove_image' en el array (no es columna de BD)
+        if (isset($validated['remove_image'])) {
+            unset($validated['remove_image']);
         }
 
         return $validated;
