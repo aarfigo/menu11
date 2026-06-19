@@ -6,7 +6,7 @@
             <div>
                 <p class="text-xs font-black uppercase tracking-[0.3em] text-blue-400">Panel administrativo</p>
                 <h1 class="mt-3 text-4xl font-black uppercase tracking-tight text-white">Dashboard</h1>
-                <p class="mt-4 max-w-2xl text-sm leading-relaxed text-gray-300">Gestiona todos los aspectos de tu restaurante desde aquí: productos, categorías, zonas de entrega, configuración y catálogo de imágenes.</p>
+                <p class="mt-4 max-w-2xl text-sm leading-relaxed text-gray-300">Gestiona todos los aspectos de tu restaurante desde aquí: productos, categorías, zonas de entrega, configuración y más.</p>
             </div>
             <a href="{{ route('menu') }}" class="inline-flex items-center justify-center rounded-full bg-blue-600 px-6 py-3 text-sm font-black uppercase tracking-widest text-white transition hover:bg-blue-700">
                 ← Volver al menú
@@ -66,17 +66,18 @@
             <h2 class="text-2xl font-black uppercase tracking-tight text-white mb-6">Editar Productos del Menú</h2>
             
             @forelse($products as $product)
-                <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" class="rounded-3xl border border-blue-600/30 bg-black/70 p-6 shadow-lg shadow-blue-900/10 mb-6">
+                <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data" class="rounded-3xl border border-blue-600/30 bg-black/70 p-6 shadow-lg shadow-blue-900/10">
                     @csrf
                     @method('PUT')
 
                     <div class="grid gap-6 lg:grid-cols-[220px_1fr_1fr]">
                         
+                        <!-- SECCIÓN DE IMAGEN MEJORADA -->
                         <div class="flex flex-col items-center justify-center rounded-2xl border border-blue-600/20 bg-black/40 p-4 text-center">
                             <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-3 block">Imagen del Producto</span>
                             <div class="relative group h-36 w-36 overflow-hidden rounded-2xl bg-black/50 border border-gray-700 flex items-center justify-center shadow-inner">
                                 @if($product->image_url && trim($product->image_url) !== '')
-                                    <img id="preview_edit_{{ $product->id }}" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                                    <img id="preview_edit_{{ $product->id }}" src="{{ $product->image_url }}" alt="{{ $product->name }}" class="h-full w-full object-cover transition duration-300 group-hover:opacity-75">
                                     <div id="placeholder_edit_{{ $product->id }}" class="hidden text-center">
                                         <span class="text-4xl block mb-1">📷</span>
                                         <span class="text-[10px] text-gray-500 uppercase tracking-wider block">Sin imagen</span>
@@ -89,10 +90,21 @@
                                     <img id="preview_edit_{{ $product->id }}" src="" class="hidden h-full w-full object-cover">
                                 @endif
                             </div>
-                            <label class="mt-4 w-full cursor-pointer rounded-full bg-blue-600/20 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider text-blue-300 border border-blue-500/30 transition hover:bg-blue-600 hover:text-white">
-                                Cambiar Foto
-                                <input type="file" name="image" accept="image/*" class="hidden" onchange="previewImage(this, 'preview_edit_{{ $product->id }}', 'placeholder_edit_{{ $product->id }}')">
-                            </label>
+                            
+                            <!-- Botones de Foto -->
+                            <div class="mt-4 w-full space-y-2">
+                                <label class="w-full cursor-pointer rounded-full bg-blue-600/20 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider text-blue-300 border border-blue-500/30 hover:bg-blue-600/40 transition inline-block">
+                                    ✏️ Cambiar Foto
+                                    <input type="file" name="image" accept="image/*" class="hidden" onchange="previewImage(this, 'preview_edit_{{ $product->id }}', 'placeholder_edit_{{ $product->id }}')">
+                                </label>
+                                
+                                @if($product->image_url && trim($product->image_url) !== '')
+                                    <button type="button" onclick="removeImage({{ $product->id }})" class="w-full rounded-full bg-red-600/20 px-4 py-2 text-xs font-bold uppercase tracking-wider text-red-300 border border-red-500/30 hover:bg-red-600/40 transition">
+                                        🗑️ Eliminar Foto
+                                    </button>
+                                    <input type="hidden" id="remove_image_{{ $product->id }}" name="remove_image" value="0">
+                                @endif
+                            </div>
                         </div>
 
                         <div class="space-y-4">
@@ -143,7 +155,7 @@
                         </button>
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                             <span class="text-xs uppercase tracking-widest text-gray-400">ID {{ $product->id }}</span>
-                            <button type="button" onclick="if(confirm('¿Seguro que deseas eliminar este producto?')) document.getElementById('delete-product-{{ $product->id }}').submit();" class="rounded-full border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-black uppercase tracking-widest text-red-400 transition hover:bg-red-500/20">
+                            <button type="button" onclick="if(confirm('¿Seguro que deseas eliminar este producto?')) document.getElementById('delete-product-{{ $product->id }}').submit();" class="inline-flex items-center justify-center rounded-full bg-red-600/20 px-4 py-2 text-xs font-black uppercase tracking-widest text-red-300 border border-red-500/30 transition hover:bg-red-600/40">
                                 🗑️ Eliminar
                             </button>
                         </div>
@@ -175,8 +187,8 @@
                         </div>
                         <img id="preview_create" src="" class="hidden h-full w-full object-cover">
                     </div>
-                    <label class="mt-4 w-full cursor-pointer rounded-full bg-green-500/20 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider text-green-300 border border-green-500/30 transition hover:bg-green-500 hover:text-black">
-                        Seleccionar Foto
+                    <label class="mt-4 w-full cursor-pointer rounded-full bg-green-500/20 px-4 py-2 text-center text-xs font-bold uppercase tracking-wider text-green-300 border border-green-500/30 hover:bg-green-500/40 transition inline-block">
+                        ✓ Seleccionar Foto
                         <input type="file" name="image" accept="image/*" class="hidden" onchange="previewImage(this, 'preview_create', 'placeholder_create')">
                     </label>
                 </div>
@@ -222,7 +234,7 @@
                             </label>
                         </div>
                     </div>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-full bg-green-500 px-6 py-3 text-sm font-black uppercase tracking-widest text-black transition hover:bg-green-600 w-full mt-4">
+                    <button type="submit" class="inline-flex items-center justify-center rounded-full bg-green-500 px-6 py-3 text-sm font-black uppercase tracking-widest text-black transition hover:bg-green-600">
                         ➕ Crear Producto
                     </button>
                 </div>
@@ -246,6 +258,24 @@
                 
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        function removeImage(productId) {
+            // Marcar que se debe eliminar la imagen
+            document.getElementById('remove_image_' + productId).value = '1';
+            
+            // Resetear preview
+            const preview = document.getElementById('preview_edit_' + productId);
+            const placeholder = document.getElementById('placeholder_edit_' + productId);
+            const fileInput = document.querySelector('input[name="image"]');
+            
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            
+            // Limpiar input de archivo
+            if (fileInput) fileInput.value = '';
+            
+            alert('✓ La foto será eliminada al guardar los cambios');
         }
 
         async function updatePriceBs() {
