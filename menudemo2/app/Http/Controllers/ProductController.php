@@ -77,7 +77,7 @@ class ProductController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048', 
         ]);
 
-        // Asegura que el producto no se desactive solo al editar
+        // ✅ CORRECCIÓN #1: Manejar is_active correctamente
         if ($request->has('is_active')) {
             $validated['is_active'] = true;
         } elseif ($product) {
@@ -86,33 +86,45 @@ class ProductController extends Controller
             $validated['is_active'] = true;
         }
 
-        // SOLUCIÓN A LA IMAGEN: Tu código original solo tenía el IF. Si no subías foto, el array iba sin 'image_url' y se vaciaba.
+        // ✅ CORRECCIÓN #2: LÓGICA MEJORADA PARA IMÁGENES
         if ($request->hasFile('image')) {
+            // Si hay una imagen nueva, primero eliminar la anterior (si existe)
             if ($product && $product->image_url) {
                 $oldPath = str_replace('/storage/', '', $product->image_url);
                 Storage::disk('public')->delete($oldPath);
             }
 
+            // Guardar la nueva imagen
             $path = $request->file('image')->store('products', 'public');
             $validated['image_url'] = Storage::url($path);
         } else {
-            // Si no se sube un archivo nuevo, mantenemos la URL existente en el producto
-            if ($product) {
+            // Si NO hay imagen nueva:
+            if ($product && $product->image_url) {
+                // Si es edición, mantener la imagen anterior
                 $validated['image_url'] = $product->image_url;
+            } else {
+                // Si es creación sin imagen, dejar null (no obligatorio)
+                $validated['image_url'] = null;
             }
         }
 
+        // Convertir price a price_usd si se envía
         if ($request->filled('price')) {
             $validated['price_usd'] = $validated['price'];
             unset($validated['price']);
         }
 
+        // Calcular price_bs automáticamente si no se proporciona
         if (!$request->filled('price_bs') || $request->price_bs == 0) {
             $exchangeRate = Settings::get('exchange_rate', 40.00);
             $validated['price_bs'] = $validated['price_usd'] * $exchangeRate;
         }
 
-        $validated['category'] = $product ? $product->category : ''; 
+        // ✅ CORRECCIÓN #3: NO incluir 'category' en el array validado
+        // Remover la columna 'category' si existe, solo usar category_id
+        if (isset($validated['category'])) {
+            unset($validated['category']);
+        }
 
         return $validated;
     }
@@ -171,6 +183,7 @@ class ProductController extends Controller
             return redirect()->back()->withErrors(['Producto no encontrado']);
         }
 
+        // Eliminar imagen si existe
         if ($product->image_url) {
             $oldPath = str_replace('/storage/', '', $product->image_url);
             Storage::disk('public')->delete($oldPath);
