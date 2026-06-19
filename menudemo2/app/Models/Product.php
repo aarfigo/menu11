@@ -14,11 +14,10 @@ class Product extends Model
         'description',
         'price_usd',
         'price_bs',
-        'category_id', // Clave foránea numérica real
-        'category',    // 🛠️ Se agrega temporalmente para evitar el error 1364 de MySQL
+        'category_id',    // ✅ Relación con categorías
         'tag',
         'badge',
-        'image_url',
+        'image_url',      // ✅ URL de la imagen
         'is_active',
     ];
 
@@ -37,6 +36,7 @@ class Product extends Model
         return $this->price_usd;
     }
 
+    // ✅ Relación con Categoría
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
